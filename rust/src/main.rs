@@ -7,6 +7,7 @@ mod dao;
 mod db;
 mod models;
 mod schema;
+mod encode;
 
 #[tokio::main]
 async fn main(){
@@ -14,7 +15,7 @@ async fn main(){
     let addr = [127, 0,0,1];
     let port = 5000;
     println!("running server on port {}", port);
-    let handle = server::serve(addr, port, args[0].as_str());
+    let handle = server::serve(addr, port, args[1].as_str());
     // just wait till completion
     handle.await 
 }

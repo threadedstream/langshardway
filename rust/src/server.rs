@@ -2,6 +2,7 @@ use std::convert::Infallible;
 use std::net::{SocketAddr};
 use futures_util::TryFutureExt;
 use hyper::body;
+use hyper::http::HeaderValue;
 use std::sync::{Arc};
 use hyper::{Body, Request, Response, Server};
 use hyper::service::{make_service_fn, service_fn};
@@ -11,6 +12,7 @@ use tokio::sync::Mutex;
 use crate::db::Persistence;
 
 use crate::dao::Post;
+use crate::encode::{encode_post, encode_posts};
 
 pub struct Api {
     db: Persistence
@@ -32,11 +34,7 @@ impl Api {
             let p: Post = serde_json::from_slice(&bytes).unwrap();
             let post = self.db.store_post(p.title, p.body);
             
-            let v = serde_json::to_string(&Post{
-                id: post.id as i64,
-                title: &post.title,
-                body: &post.body,
-            }).unwrap();
+            let v = serde_json::to_string(&encode_post(&post)).unwrap();
 
             *response.body_mut() = Body::from(v);
             *response.status_mut() = StatusCode::OK;
@@ -53,12 +51,7 @@ impl Api {
             let mut response = Response::new(Body::empty());
             if let Some(post_id) = query_params.get(&"id".to_owned()) {
                 let post = self.db.publish_post(post_id.parse::<i32>().unwrap());
-                let v = serde_json::to_string(&Post{ 
-                    id: post.id as i64,
-                    title: &post.title,
-                    body: &post.body,
-                }).unwrap();
-
+                let v = serde_json::to_string(&encode_post(&post)).unwrap();
                 *response.body_mut() = Body::from(v);
                 *response.status_mut() = StatusCode::OK;
             } else {
@@ -74,14 +67,7 @@ impl Api {
         let mut response = Response::new(Body::empty());
         if let Some(post_title) = query_params.get(&"title".to_owned()) {
             let posts = self.db.get_posts_by_title(post_title.as_str());
-            let mut api_posts = vec![];
-            for post in &posts {
-                api_posts.push(Post{
-                    id: post.id as i64,
-                    title: post.title.as_str(),
-                    body: post.body.as_str(),
-                })
-            }
+            let api_posts = encode_posts(&posts);
             let v = serde_json::to_string(&api_posts).unwrap();
             *response.body_mut() = Body::from(v);
             *response.status_mut() = StatusCode::OK;
@@ -127,13 +113,14 @@ pub async fn serve(addr: [u8; 4], port: u16, conn_str: &str) {
                         query_params = parse_query_params(query); 
                     }
                     
-                    let response = match (req.method(), req.uri().path()) {
+                    let mut response = match (req.method(), req.uri().path()) {
                         (&Method::POST, "/post") => api.lock().await.store_post(req).await.unwrap(),
                         (&Method::GET, "/publish") => api.lock().await.publish_post(req, query_params).unwrap(),
                         (&Method::GET, "/posts") => api.lock().await.get_posts_by_title(req, query_params).unwrap(),
                         (&Method::GET, "/dumb") => api.lock().await.handle_dumb().unwrap(),
                         _ => Api::handler_not_found().unwrap()
                     };
+                    response.headers_mut().append("Content-Type", HeaderValue::from_str("application/json").unwrap());
                     Ok::<Response<Body>, hyper::Error>(response)
                 }
             }))
