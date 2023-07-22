@@ -42,9 +42,26 @@ pub const Server = struct {
 
         var buf: [1024]u8 = undefined;
         _ = try conn.stream.read(buf[0..]);
-        
-        log.info("[client] => {s}", .{buf});
 
-        _ = try conn.stream.write(server_msg);
+        var req = try http.Request.init(&buf);
+        defer req.deinit();
+
+        log.info("[client] => path = {s}", .{req.path});
+        log.info("[client] => method = {s}", .{req.method.string()});
+        var keyIter = req.headers.keyIterator();
+        while (keyIter.next()) |k| {
+            log.info("{s}: {s}", .{ k.*, req.headers.get(k.*).? });
+        }
+
+        var resp = http.Response.init();
+        defer resp.deinit();
+
+        resp.status = http.Status.Ok;
+
+        try resp.headers.put("Content-Type", "application/json");
+        try resp.headers.put("Host", "localhost");
+
+        const rstr = try resp.response_string();
+        _ = try conn.stream.write(rstr);
     }
 };
