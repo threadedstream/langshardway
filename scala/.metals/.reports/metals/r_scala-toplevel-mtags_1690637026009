@@ -1,0 +1,16 @@
+id: file://<WORKSPACE>/src/main/scala/Main.scala:[93..94) in Input.VirtualFile("file://<WORKSPACE>/src/main/scala/Main.scala", "
+sealed trait Expr 
+object Expr {
+    case class Str(s: String) extends Expr
+    case class 
+}
+
+object Main extends App {
+    println("Hi")
+
+}
+
+")
+file://<WORKSPACE>/src/main/scala/Main.scala:6: error: expected identifier; obtained rbrace
+}
+^

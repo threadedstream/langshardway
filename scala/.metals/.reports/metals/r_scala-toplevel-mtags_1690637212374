@@ -1,0 +1,26 @@
+id: file://<WORKSPACE>/src/main/scala/Main.scala:[580..586) in Input.VirtualFile("file://<WORKSPACE>/src/main/scala/Main.scala", "import fastparse.MultiLineWhitespace
+@import fastparse._, MultiLineWhitespace._
+import fastparse._, MultiLineWhitespace._
+
+sealed trait Expr 
+object Expr {
+    case class Str(s: String) extends Expr
+    case class Ident(name: String) extends Expr 
+    case class Plus (nodes: Seq[Expr]) extends Expr 
+    case class Dict(pairs: Map[String, Expr]) extends Expr 
+    case class Local(name: String, assigned: Expr, body: Expr) extends Expr 
+    case class Func(argNames: Seq[String], body: Expr) extends Expr 
+    case class Call(expr: Expr, args: Seq[Expr]) extends Expr 
+}
+
+@def 
+
+object Main extends App {
+    println("Hi")
+
+}
+
+")
+file://<WORKSPACE>/src/main/scala/Main.scala:18: error: expected identifier; obtained object
+object Main extends App {
+^
